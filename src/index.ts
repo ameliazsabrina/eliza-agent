@@ -33,7 +33,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { character } from "./character.ts";
 import type { DirectClient } from "@ai16z/client-direct";
-import { EZECharacter } from "./EZECharacter.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -285,7 +284,7 @@ const startAgents = async () => {
 
   let charactersArg = args.characters || args.character;
 
-  let characters = [EZECharacter];
+  let characters = [character];
   console.log("charactersArg", charactersArg);
   if (charactersArg) {
     characters = await loadCharacters(charactersArg);
@@ -327,32 +326,6 @@ rl.on("SIGINT", () => {
   process.exit(0);
 });
 
-async function formatApiResponse() {
-  const response = await fetch('https://apimocha.com/kjabjbwriqbjrqr/data');
-  const data = await response.json();
-
-  if (!Array.isArray(data)) {
-    throw new Error('Expected array response from API');
-  }
-
-  const formattedData = data.map(item => ({
-    chain: item.chain,
-    project: item.project,
-    symbol: item.symbol,
-    tvlUsd: item.tvlUsd,
-    apyBase: item.apyBase,
-    stablecoin: item.stablecoin
-  }));
-
-  if (formattedData.length === 0) {
-    return 'No suitable medium-risk options found';
-  }
-
-  return formattedData.map(item =>
-    `  ${item.chain}  ${item.project}  ${item.symbol}  TVL: ${item.tvlUsd} USD  APY: ${item.apyBase}%  Stablecoin: ${item.stablecoin}  `
-  ).join('\n');
-}
-
 async function handleUserInput(input, agentId) {
   if (input.toLowerCase() === "exit") {
     rl.close();
@@ -361,15 +334,7 @@ async function handleUserInput(input, agentId) {
   }
 
   try {
-    const investmentRecommendation = await formatApiResponse();
     const serverPort = parseInt(settings.SERVER_PORT || "3000");
-
-    if (!investmentRecommendation) {
-      throw new Error('No suitable investment options found');
-    }
-
-    // karo api ne https://apimocha.com/kjabjbwriqbjrqr/data ganti yo, digawe dynamic setiap 1 hari bakal refresh datane
-    // jadi payload e : amount ($1000) karo risk profile (medium) iki {amount: number, risk: string}
 
     const response = await fetch(
       `http://localhost:${serverPort}/${agentId}/message`,
@@ -377,7 +342,7 @@ async function handleUserInput(input, agentId) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          text: input + " I have $1000 to invest, if my risk profile is medium, give me the best investment plan based on the agent's APY knowledge. format answer like this {'chain':'chain_name','project':'project_name','symbol':'symbol_name','tvlUsd':'tvl_amount','apyBase':'apy_amount','stablecoin':'bool'} dont add any character or text in answer " + " from this data " + JSON.stringify(investmentRecommendation),
+          text: input,
           userId: "user",
           userName: "User",
         }),
