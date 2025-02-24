@@ -335,7 +335,6 @@ async function handleUserInput(input, agentId) {
 
   try {
     const serverPort = parseInt(settings.SERVER_PORT || "3000");
-
     const response = await fetch(
       `http://localhost:${serverPort}/${agentId}/message`,
       {
@@ -349,9 +348,24 @@ async function handleUserInput(input, agentId) {
       }
     );
 
-    const responseData = await response.json();
-    responseData.forEach((message) => console.log(`${"Agent"}: ${message.text}`));
+    const contentType = response.headers.get("content-type");
+    if (contentType?.includes("application/json")) {
+      const responseData = await response.json();
+      responseData.forEach((message) =>
+        console.log(`${"Agent"}: ${message.text}`)
+      );
+    } else {
+      // Handle non-JSON response
+      const text = await response.text();
+      elizaLogger.error(`Server error: ${text}`);
+      console.log(
+        "Agent not available. Please check if the agent is running correctly."
+      );
+    }
   } catch (error) {
-    console.error("Error in handleUserInput:", error);
+    console.error("Error communicating with agent:", error.message);
+    console.log(
+      "Make sure the agent server is running and the agent ID is correct."
+    );
   }
 }
