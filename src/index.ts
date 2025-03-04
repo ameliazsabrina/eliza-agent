@@ -47,6 +47,7 @@ export function parseArguments(): {
   character?: string;
   characters?: string;
 } {
+  console.log("process.argv:", process.argv);
   try {
     return yargs(process.argv.slice(2))
       .option("character", {
@@ -280,12 +281,18 @@ async function startAgent(character: Character, directClient: DirectClient) {
 
 const startAgents = async () => {
   const directClient = await DirectClientInterface.start();
+
+  if (!directClient) {
+    elizaLogger.error("DirectClientInterface failed to start");
+    process.exit(1);
+  }
   const args = parseArguments();
 
   let charactersArg = args.characters || args.character;
 
   let characters = [character];
   console.log("charactersArg", charactersArg);
+
   if (charactersArg) {
     characters = await loadCharacters(charactersArg);
   }
@@ -300,7 +307,12 @@ const startAgents = async () => {
   function chat() {
     const agentId = characters[0].name ?? "Agent";
     rl.question("You: ", async (input) => {
-      await handleUserInput(input, agentId);
+      try {
+        await handleUserInput(input, agentId);
+      } catch (error) {
+        elizaLogger.error("Error handling user input:", error);
+        console.error(error);
+      }
       if (input.toLowerCase() !== "exit") {
         chat(); // Loop back to ask another question
       }
@@ -313,7 +325,7 @@ const startAgents = async () => {
 
 startAgents().catch((error) => {
   elizaLogger.error("Unhandled error in startAgents:", error);
-  process.exit(1); // Exit the process after logging
+  process.exit(1);
 });
 
 const rl = readline.createInterface({
