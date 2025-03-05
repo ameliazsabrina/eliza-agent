@@ -1,0 +1,11 @@
+name: eliza-agent
+type: web
+build:
+  base: node:22
+  commands:
+    - corepack enable
+    - pnpm install --frozen-lockfile
+    - pnpm run build
+run:
+  command: pnpm start
+  port: 3000
